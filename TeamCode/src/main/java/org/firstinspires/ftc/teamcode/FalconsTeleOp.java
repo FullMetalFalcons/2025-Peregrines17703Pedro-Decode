@@ -6,11 +6,13 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 @TeleOp
 public class FalconsTeleOp extends OpMode {
     //Initialize motors, servos, sensors, imus, etc.
-    DcMotorEx motorLF, motorRF, motorLB, motorRB;
+    DcMotorEx motorLF, motorRF, motorLB, motorRB, belt, ball, rhino;
+    Servo pusher;
     // TODO: Uncomment the following line if you are using servos
     //Servo claw;
 
@@ -55,22 +57,58 @@ public class FalconsTeleOp extends OpMode {
         motorRF.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         motorRB.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        belt = (DcMotorEx) hardwareMap.dcMotor.get("belt");
+        ball = (DcMotorEx) hardwareMap.dcMotor.get("intake");
+        rhino = (DcMotorEx)  hardwareMap.dcMotor.get("launch_ball");
+        //imu = lazyImu.get();
+        // Use the following line as a template for defining new servos
+        //Claw = (Servo) hardwareMap.servo.get("claw");
+        pusher = (Servo) hardwareMap.servo.get("pusher");
+
+        belt.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+        ball.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rhino.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+        rhino.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rhino.setVelocityPIDFCoefficients(/*15*/ 800, 0, /*1*/0, 50  /*20*/);
+
+        //voltageSensor = hardwareMap.get(VoltageSensor.class, "Control Hub");
+
     }
+
+    boolean reverseDrive = false;
+    boolean lastLeftBumper = false;
 
     // This code runs repeatedly until the Stop button is pressed on the Driver Station
     // Replaces the old  while(OpModeIsActive())  loop
     @Override
     public void loop() {
 
+        boolean slowMode = gamepad1.right_bumper;
         // Mecanum drive code
         double powerX = 0.0;  // Desired power for strafing           (-1 to 1)
         double powerY = 0.0;  // Desired power for forward/backward   (-1 to 1)
         double powerAng = 0.0;  // Desired power for turning          (-1 to 1)
 
+        if (gamepad1.left_bumper && !lastLeftBumper)
+        {
+            reverseDrive = !reverseDrive;
+        }
+        lastLeftBumper = gamepad1.left_bumper;
+
+        if (!reverseDrive)
+        {
+            powerAng = -gamepad1.right_stick_x;
+        }
+        else
+        {
+            powerAng = gamepad1.right_stick_x;
+        }
+
         // Set the desired powers based on joystick inputs (-1 to 1)
         powerX = gamepad1.left_stick_x;
         powerY = -gamepad1.left_stick_y;
-        powerAng = -gamepad1.right_stick_x;
+
 
         // Perform vector math to determine the desired powers for each wheel
         double powerLF = powerX + powerY - powerAng;
@@ -89,29 +127,111 @@ public class FalconsTeleOp extends OpMode {
         powerLB /= max;
         powerRF /= max;
         powerRB /= max;
+        //gooofy lefty
 
-        motorLF.setPower(powerLF);
-        motorLB.setPower(powerLB);
-        motorRF.setPower(powerRF);
-        motorRB.setPower(powerRB);
+        if (slowMode)
+        {
+            powerLF /= 10;
+            powerLB /= 10;
+            powerRF /= 10;
+            powerRB /= 10;
+        }
+
+        if (!reverseDrive)
+        {
+            motorLF.setPower(powerLF);
+            motorLB.setPower(powerLB);
+            motorRF.setPower(powerRF);
+            motorRB.setPower(powerRB);
+        }
+        else
+        {
+            motorLF.setPower(-powerLF);
+            motorLB.setPower(-powerLB);
+            motorRF.setPower(-powerRF);
+            motorRB.setPower(-powerRB);
+        }
 
 
+        // goofy belt
+        boolean beltUp = gamepad2.dpad_up;
+        boolean beltBown = gamepad2.dpad_down;
 
-        // This type of boolean is a new addition to the FTC SDK
-        // It will be true ONLY when the specified button changes state from not being pressed to being pressed
-        //   Useful for toggle systems and as a replacement for the old (button && !lastButton) approach
+        if(beltUp)
+        {
+            belt.setPower(1);
+        }
+        else if(beltBown)
+        {
+            belt.setPower(-1);
+        }
+        else {
+            belt.setPower(0);
+        }
 
-        //if (gamepad1.rightBumperWasPressed()) { /* CODE */ }
+        boolean intake = gamepad2.x;
+        boolean outake = gamepad2.a;
 
+        if(intake)
+        {
+            ball.setPower(1);
+        }
+        else if(outake)
+        {
+            ball.setPower(-1);
+        }
+        else
+        {
+            ball.setPower(0);
+        }
 
+        //double multiplier = 13/voltageSensor.getVoltage();
 
+        boolean launch_ball = gamepad2.right_bumper;
+        boolean reverse_launcher = gamepad2.left_bumper;
+        if(launch_ball)
+        {
+                /*multiplier = 13/voltageSensor.getVoltage();
+                rhino.setPower(.75 * multiplier);*/
+            rhino.setVelocity(1800);
+        }
+        else if (reverse_launcher)
+        {
+                /*multiplier = 13/voltageSensor.getVoltage();
+                rhino.setPower(.57 * multiplier);*/
+            //rhino.setVelocity(20520, AngleUnit.DEGREES);
+            rhino.setVelocity(1400);
+
+        }
+        else
+        {
+            rhino.setPower(0);
+        }
+
+        boolean pusherIn = gamepad2.dpad_right;
+        boolean pusherOut = gamepad2.dpad_left;
+
+        if (pusherOut)
+        {
+            pusher.setPosition(.25);
+        }
+        else
+        {
+            pusher.setPosition(.75);
+        }
         // If you want to print information to the Driver Station, use telemetry
         // addData() lets you give a string which is automatically followed by a ":" when printed
         //     the variable that you list after the comma will be displayed next to the label
         // update() only needs to be run once and will "push" all of the added data
 
-        //telemetry.addData("Label", "Information");
-        //telemetry.update();
+        telemetry.addData("PerpEncoderTicks",belt.getCurrentPosition());
+        telemetry.addData("Launcher Encoder Ticks", rhino.getCurrentPosition());
+        telemetry.addData("LF power", powerLF);
+        telemetry.addData("LB power", powerLB);
+        telemetry.addData("RF power", powerRF);
+        telemetry.addData("RB power", powerRB);
+        //telemetry.addData("Launcher power", (.65 * multiplier));
+        telemetry.update();
 
     }
 
