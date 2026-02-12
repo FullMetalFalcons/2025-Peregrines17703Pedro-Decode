@@ -1,13 +1,16 @@
 package org.firstinspires.ftc.teamcode;
-
-import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.TelemetryManager;
+import com.bylazar.telemetry.PanelsTelemetry;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.PathChain;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.util.ElapsedTime;
+import com.pedropathing.geometry.Pose;
+
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
@@ -17,52 +20,150 @@ public class Close12 extends OpMode {
     public Follower follower;
     private int pathState;
 
-    ElapsedTime delayTimer = new ElapsedTime();
-    ElapsedTime autoTimer = new ElapsedTime();
     double delaySeconds = 0.0;
     final double AUTO_LENGTH_SECONDS = 30.0;
     final double AUTO_END_BUFFER_SECONDS = 1.0;
 
 
     // Define important coordinate locations for the Blue side of the field
-    private Pose startPose = new Pose(18, 113, 0);
-    private Pose launchPose = new Pose(-16.2, 24.01, -45);
-    private Pose intake1ControlPoint = new Pose(48, 104);
-    private Pose intake1ReadyPose = new Pose(44, 84, Math.toRadians(180));
-    private Pose intake1FinishPose = new Pose(18, 84, Math.toRadians(180));
-
-    private Pose hitLeverPose = new Pose(17, 75, Math.toRadians(180));
-    private Pose hitLeverControlPoint = new Pose(40, 80);
-
-    private Pose intake2ControlPoint = new Pose(51, 107);
-    private Pose intake2ReadyPose = new Pose(44, 60, Math.toRadians(180));
-    private Pose intake2FinishPose = new Pose(18, 60, Math.toRadians(180));
-
-    private Pose launch3ControlPoint = new Pose(55, 58);
-
-    private Pose intake3ReadyPose = new Pose(44, 36, Math.toRadians(180));
-    private Pose intake3FinishPose = new Pose(18, 36, Math.toRadians(180));
-
-    private Pose launch4ControlPoint = new Pose(55, 58);
-    private Pose leavePose = new Pose(45, 113, Math.toRadians(315));
-
-    private PathChain launchPath1, intakePathReady1, intakePath1, launchPath2, intakePathReady2, intakePath2, launchPath3, intakePathReady3, intakePath3, launchPath4, leavePath, hitLever1;
-
-    PeregrineShooter peregrineShooter;
+    private TelemetryManager panelsTelemetry; // Panels Telemetry instance
+    //public Follower follower; // Pedro Pathing follower instance
+    //private int pathState; // Current autonomous path state (state machine)
+    private Paths paths; // Paths defined in the Paths class
 
     @Override
     public void init() {
-        peregrineShooter = new PeregrineShooter();
-        follower = Constants.createFollower(hardwareMap); // Make sure you create the follower before building paths
-        buildPaths();
-        follower.setStartingPose(startPose);
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        // Initialize external systems
-        peregrineShooter.init(hardwareMap);
+        follower = Constants.createFollower(hardwareMap);
+        follower.setStartingPose(new Pose(72, 8, Math.toRadians(90)));
 
-        // Set the starting pose to null so that TeleOp will pick up with
-        //  the Pinpoint position where this auto ends off
+        paths = new Paths(follower); // Build paths
+
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);
     }
+
+    @Override
+    public void loop() {
+        follower.update(); // Update Pedro Pathing
+        peregrineShooter = new PeregrineShooter();
+        peregrineShooter.update();
+        //pathState = autonomousPathUpdate(); // Update autonomous state machine
+
+        // Log values to Panels and Driver Station
+        panelsTelemetry.debug("Path State", pathState);
+        panelsTelemetry.debug("X", follower.getPose().getX());
+        panelsTelemetry.debug("Y", follower.getPose().getY());
+        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.update(telemetry);
+    }
+
+
+    public static class Paths {
+        public PathChain ShootPos1;
+        public PathChain Path2;
+        public PathChain Path3;
+        public PathChain Path4;
+        public PathChain Path5;
+        public PathChain Path6;
+        public PathChain Path7;
+        public PathChain Path8;
+        public PathChain Path9;
+
+        public Paths(Follower follower) {
+            ShootPos1 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(14.500, 113.000),
+
+                                    new Pose(50.000, 95.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(133))
+
+                    .build();
+
+            Path2 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(50.000, 95.000),
+
+                                    new Pose(45.000, 84.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(133), Math.toRadians(0))
+
+                    .build();
+
+            Path3 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(45.000, 84.000),
+
+                                    new Pose(18.000, 84.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+
+                    .build();
+
+            Path4 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(18.000, 84.000),
+
+                                    new Pose(50.000, 95.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(133))
+
+                    .build();
+
+            Path5 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(50.000, 95.000),
+
+                                    new Pose(45.000, 60.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(133), Math.toRadians(0))
+
+                    .build();
+
+            Path6 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(45.000, 60.000),
+
+                                    new Pose(10.000, 60.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+
+                    .build();
+
+            Path7 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(10.000, 60.000),
+
+                                    new Pose(50.000, 95.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(133))
+
+                    .build();
+
+            Path8 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(50.000, 95.000),
+
+                                    new Pose(12.000, 61.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(133), Math.toRadians(-35))
+
+                    .build();
+
+            Path9 = follower.pathBuilder().addPath(
+                            new BezierLine(
+                                    new Pose(12.000, 61.000),
+
+                                    new Pose(50.000, 95.000)
+                            )
+                    ).setLinearHeadingInterpolation(Math.toRadians(-35), Math.toRadians(133))
+
+                    .build();
+        }
+    }
+    PeregrineShooter peregrineShooter;
 
     @Override
     public void init_loop() {
@@ -79,83 +180,10 @@ public class Close12 extends OpMode {
 
     }
 
-    @Override
-    public void start() {
-        // Reset any timers
-        delayTimer.reset();
-        autoTimer.reset();
-        //autonomousPathUpdate();
-    }
-
-    @Override
-    public void loop() {
-        follower.update(); // Update Pedro Pathing - will also cause the robot to follow the current path
-        peregrineShooter.update();
-        autonomousPathUpdate();
-        // Update autonomous state machine
-    }
-
-    public void buildPaths() {
-        // ....... Launch 1
-        launchPath1 = follower.pathBuilder()
-                .addPath(new BezierLine(startPose, launchPose))
-                .setLinearHeadingInterpolation(startPose.getHeading(), launchPose.getHeading()).build();
-
-        // ....... Intake 1
-        intakePathReady1 = follower.pathBuilder()
-                .addPath(new BezierCurve(launchPose, intake1ControlPoint, intake1ReadyPose))
-                .setLinearHeadingInterpolation(launchPose.getHeading(), intake1ReadyPose.getHeading()).build();
-        intakePath1 = follower.pathBuilder()
-                .addPath(new BezierLine(intake1ReadyPose, intake1FinishPose))
-                .setTangentHeadingInterpolation().build();
-        hitLever1 = follower.pathBuilder()
-                .addPath(new BezierCurve(intake1FinishPose, hitLeverControlPoint, hitLeverPose))
-                .setConstantHeadingInterpolation(hitLeverPose.getHeading())
-                .build();
-
-        // ....... Launch 2
-        launchPath2 = follower.pathBuilder()
-                .addPath(new BezierLine(intake1FinishPose, launchPose))
-                .setLinearHeadingInterpolation(intake1FinishPose.getHeading(), launchPose.getHeading()).build();
-
-        // ....... Intake 2
-        intakePathReady2 = follower.pathBuilder()
-                .addPath(new BezierCurve(launchPose, intake2ControlPoint, intake2ReadyPose))
-                .setLinearHeadingInterpolation(launchPose.getHeading(), intake2ReadyPose.getHeading()).build();
-        intakePath2 = follower.pathBuilder()
-                .addPath(new BezierLine(intake2ReadyPose, intake2FinishPose))
-                .setTangentHeadingInterpolation().build();
-
-        // ....... Launch 3
-        launchPath3 = follower.pathBuilder()
-                .addPath(new BezierCurve(intake2FinishPose, launch3ControlPoint, launchPose))
-                .setLinearHeadingInterpolation(intake2FinishPose.getHeading(), launchPose.getHeading()).build();
-
-        // ....... Intake 3
-        intakePathReady3 = follower.pathBuilder()
-                .addPath(new BezierLine(launchPose, intake3ReadyPose))
-                .setLinearHeadingInterpolation(launchPose.getHeading(), intake3ReadyPose.getHeading())
-                .build();
-        intakePath3 = follower.pathBuilder()
-                .addPath(new BezierLine(intake3ReadyPose, intake3FinishPose))
-                .setLinearHeadingInterpolation(intake3ReadyPose.getHeading(), intake3FinishPose.getHeading())
-                .build();
-
-        // ....... Launch 4
-        launchPath4 = follower.pathBuilder()
-                .addPath(new BezierCurve(intake3FinishPose, launch4ControlPoint, launchPose))
-                .setLinearHeadingInterpolation(intake3FinishPose.getHeading(), launchPose.getHeading())
-                .build();
-
-        // ....... Leave Points
-        leavePath = follower.pathBuilder()
-                .addPath(new BezierLine(launchPose, leavePose))
-                .setConstantHeadingInterpolation(leavePose.getHeading())
-                .build();
-    }
 
     public void autonomousPathUpdate() {
-        switch (pathState) {
+        //follower.followPath(Paths, true);
+        /*switch (pathState) {
             case 0:
                 // Wait for the starting delay to expire
                 if (delayTimer.seconds() > delaySeconds) {
@@ -297,14 +325,11 @@ public class Close12 extends OpMode {
                 // Let the third launch sequence play out
 
                 // If the launch sequence is finished, or autonomous is about to end, move sideways for the Leave points
-                if (autoTimer.seconds() > AUTO_LENGTH_SECONDS - AUTO_END_BUFFER_SECONDS
-                    /*|| !penguinsLauncher.isBusy()*/) {
 
                     // Quit out of the state machine and move off of the Launch line
                     follower.followPath(leavePath, true);
                     pathState = -1;
-                }
-                break;
-        }
+                break;*/
+
     }
 }

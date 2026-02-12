@@ -19,6 +19,7 @@ public class PeregrineShooter {
     Servo pusher;
     ElapsedTime stateTimer = new ElapsedTime();
     LauncherState currentState = LauncherState.IDLE;
+    public double prepTime;
     boolean launcherPrepared = false;
     int ballsToFire = 0;
 
@@ -27,6 +28,7 @@ public class PeregrineShooter {
         LOAD,
         PREPARE,
         LAUNCH,
+        PREPARESHOOT,
         FOLLOW_THROUGH
     }
     //public boolean isBusy = false;
@@ -54,10 +56,10 @@ public class PeregrineShooter {
                     intake.setPower(0);
 
                 break;
-            case PREPARE:
+            case PREPARESHOOT:
                     //stateTimer.reset();
                     if (stateTimer.seconds() < 2.5)
-                        launcher.setVelocity(1400);
+                        launcher.setVelocity(1300);
                     else if (stateTimer.seconds() >= 2.5) {
                         changeState(LauncherState.LAUNCH);
 
@@ -66,21 +68,33 @@ public class PeregrineShooter {
             case LAUNCH:
 
                     //stateTimer.reset();
-                    launcher.setVelocity(1400);
-                    intake.setPower(1);
+                    launcher.setVelocity(1250);
+                    intake.setPower(-.5);
+                    belt.setPower(-.25);
                     if (stateTimer.seconds() <= .5)
                     {
                         pusher.setPosition(0);
                     }
                     //pusher.setPosition(0);
-                    if (stateTimer.seconds() > .5)
+                    if (stateTimer.seconds() > .5) {
                         pusher.setPosition(.75);
-                    belt.setPower(1);
-                    if (stateTimer.seconds() > 4) {
+                        launcher.setVelocity(1350);
+                    }
+                    if (stateTimer.seconds() >= .75) {
+                        belt.setPower(1);
+                    }
+                    if (stateTimer.seconds() > 2) {
                         changeState(LauncherState.IDLE);
                     }
 
                 break;
+            case PREPARE:
+                launcher.setVelocity(1250);
+                break;
+            case LOAD:
+                intake.setPower(-1);
+                belt.setPower(1);
+                launcher.setVelocity(-1000);
         }
 
     }
@@ -93,17 +107,31 @@ public class PeregrineShooter {
 
     public boolean isBusy()
     {
-        return (currentState != LauncherState.IDLE);
+        return (currentState != LauncherState.IDLE && currentState != LauncherState.PREPARE && currentState != LauncherState.LOAD);
     }
     public void launchBallsUnprepared()
+    {
+        if (!isBusy())
+            changeState(LauncherState.PREPARESHOOT);
+    }
+
+    public void PrepareBalls()
     {
         if (!isBusy())
             changeState(LauncherState.PREPARE);
     }
 
+    public void Intake()
+    {
+        if (!isBusy())
+        {
+            changeState(LauncherState.LOAD);
+        }
+    }
+
     public void launchBallsPrepared()
     {
-        currentState = LauncherState.LAUNCH;
+        changeState(LauncherState.LAUNCH);
     /*public void launchBallsPrepared(double delay)
     {
         launcher(1400, 3);
