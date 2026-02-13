@@ -29,7 +29,7 @@ public class PeregrineShooter {
         PREPARE,
         LAUNCH,
         PREPARESHOOT,
-        FOLLOW_THROUGH
+        LAUNCH_NOSERVO
     }
     //public boolean isBusy = false;
 
@@ -69,8 +69,8 @@ public class PeregrineShooter {
 
                     //stateTimer.reset();
                     launcher.setVelocity(1250);
-                    intake.setPower(-.5);
-                    belt.setPower(-.25);
+                    intake.setPower(-1);
+                    belt.setPower(1);
                     if (stateTimer.seconds() <= .5)
                     {
                         pusher.setPosition(0);
@@ -78,9 +78,9 @@ public class PeregrineShooter {
                     //pusher.setPosition(0);
                     if (stateTimer.seconds() > .5) {
                         pusher.setPosition(.75);
-                        launcher.setVelocity(1350);
+                        launcher.setVelocity(1300);
                     }
-                    if (stateTimer.seconds() >= .75) {
+                    if (stateTimer.seconds() >= .85) {
                         belt.setPower(1);
                     }
                     if (stateTimer.seconds() > 2) {
@@ -90,11 +90,21 @@ public class PeregrineShooter {
                 break;
             case PREPARE:
                 launcher.setVelocity(1250);
+                belt.setPower(-.1);
                 break;
             case LOAD:
                 intake.setPower(-1);
-                belt.setPower(1);
+                belt.setPower(.75);
                 launcher.setVelocity(-1000);
+                break;
+            case LAUNCH_NOSERVO:
+                launcher.setVelocity(1300);
+                intake.setPower(-1);
+                belt.setPower(1);
+                if (stateTimer.seconds() > 2) {
+                    changeState(LauncherState.IDLE);
+                }
+
         }
 
     }
@@ -129,9 +139,14 @@ public class PeregrineShooter {
         }
     }
 
-    public void launchBallsPrepared()
-    {
+    public void launchBallsPrepared() {
         changeState(LauncherState.LAUNCH);
+    }
+
+    public void launchBallsNoServo()
+    {
+        changeState(LauncherState.LAUNCH_NOSERVO);
+    }
     /*public void launchBallsPrepared(double delay)
     {
         launcher(1400, 3);
@@ -204,5 +219,5 @@ public class PeregrineShooter {
         }
     };*/
 
-        }
+
     }

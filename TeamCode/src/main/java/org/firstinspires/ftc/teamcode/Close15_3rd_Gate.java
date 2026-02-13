@@ -22,11 +22,12 @@ public class Close15_3rd_Gate extends OpMode {
     //private Paths paths; // Paths defined in the Paths class
     private Pose testPose = new Pose(14.5, 100, Math.toRadians(90));
     private Pose startPose = new Pose(14.5, 113, Math.toRadians(90));
-    private Pose launchPose = new Pose(50, 95, Math.toRadians(138));
-    private Pose moveToClose = new Pose(45, 80, 0);
-    private Pose collectClose = new Pose(18, 80, 0);
-    private Pose moveToMid = new Pose(45, 60, 0);
-    private Pose collectMid = new Pose(10, 60, 0);
+    private Pose launchPose = new Pose(50, 95, Math.toRadians(142));
+    private Pose midReturnControl = new Pose(40, 50, 0);
+    private Pose moveToClose = new Pose(45, 83, 0);
+    private Pose collectClose = new Pose(16, 83, 0);
+    private Pose moveToMid = new Pose(45, 57, 0);
+    private Pose collectMid = new Pose(8, 57, 0);
     private Pose moveToFar = new Pose(45, 35, 0);
     private Pose collectFar = new Pose(10, 35, 0);
     private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar;
@@ -91,6 +92,24 @@ public class Close15_3rd_Gate extends OpMode {
         shootClose = follower.pathBuilder()
                 .addPath(new BezierLine(collectClose, launchPose))
                 .setLinearHeadingInterpolation(collectClose.getHeading(), launchPose.getHeading()).build();
+        moveMed = follower.pathBuilder()
+                .addPath(new BezierLine(launchPose, moveToMid))
+                .setLinearHeadingInterpolation(launchPose.getHeading(), moveToMid.getHeading()).build();
+        intakeMed = follower.pathBuilder()
+                .addPath(new BezierLine(moveToMid, collectMid))
+                .setLinearHeadingInterpolation(moveToMid.getHeading(), collectMid.getHeading()).build();
+        shootMed = follower.pathBuilder()
+                .addPath(new BezierCurve(collectMid, midReturnControl, launchPose))
+                .setLinearHeadingInterpolation(collectClose.getHeading(), launchPose.getHeading()).build();
+        moveFar = follower.pathBuilder()
+                .addPath(new BezierLine(launchPose, moveToFar))
+                .setLinearHeadingInterpolation(launchPose.getHeading(), moveToFar.getHeading()).build();
+        intakeFar = follower.pathBuilder()
+                .addPath(new BezierLine(moveToFar, collectFar))
+                .setLinearHeadingInterpolation(moveToFar.getHeading(), collectFar.getHeading()).build();
+        shootFar = follower.pathBuilder()
+                .addPath(new BezierLine(collectFar, launchPose))
+                .setLinearHeadingInterpolation(collectFar.getHeading(), launchPose.getHeading()).build();
     }
 
 
@@ -255,7 +274,7 @@ public class Close15_3rd_Gate extends OpMode {
                 if (!follower.isBusy())
                 {
                     peregrineShooter.Intake();
-                    follower.followPath(intakeClose, 0.4, true);
+                    follower.followPath(intakeClose, 0.5, true);
                     setPathState(4);
                 }
                 break;
@@ -269,10 +288,69 @@ public class Close15_3rd_Gate extends OpMode {
                 break;
             case 5:
                 if (!follower.isBusy() && !peregrineShooter.isBusy()) {
-                    peregrineShooter.launchBallsPrepared();
-                    setPathState(-1);
+                    peregrineShooter.launchBallsNoServo();
+                    setPathState(6);
                 }
                 break;
+            case 6:
+                if (!peregrineShooter.isBusy())
+                {
+                    follower.followPath(moveMed);
+                    setPathState(7);
+                }
+                break;
+            case 7:
+                if (!follower.isBusy())
+                {
+                    follower.followPath(intakeMed, .5, true);
+                    peregrineShooter.Intake();
+                    setPathState(8);
+                }
+                break;
+            case 8:
+                if (!follower.isBusy())
+                {
+                    follower.followPath(shootMed);
+                    peregrineShooter.PrepareBalls();
+                    setPathState(9);
+                }
+                break;
+            case 9:
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                {
+                    peregrineShooter.launchBallsNoServo();
+                    setPathState(10);
+                }
+                break;
+            case 10:
+                if (!peregrineShooter.isBusy())
+                {
+                    follower.followPath(moveFar);
+                    setPathState(11);
+                }
+                break;
+            case 11:
+                if (!follower.isBusy())
+                {
+                    follower.followPath(intakeFar);
+                    peregrineShooter.Intake();
+                    setPathState(12);
+                }
+                break;
+            case 12:
+                if (!follower.isBusy())
+                {
+                    follower.followPath(shootFar);
+                    peregrineShooter.PrepareBalls();
+                    setPathState(13);
+                }
+                break;
+            case 13:
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                {
+                    peregrineShooter.launchBallsNoServo();
+                    setPathState(-1);
+                }
 
         }
         // Add your state machine Here
