@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
 import com.bylazar.telemetry.PanelsTelemetry;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
@@ -14,7 +13,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.Timer;
 
 @Autonomous
-public class Close15_3rd_Gate extends OpMode {
+public class Close12Blue extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     private Timer pathTimer, actionTimer, opmodeTimer;
     private Follower follower; // Pedro Pathing follower instance
@@ -22,15 +21,16 @@ public class Close15_3rd_Gate extends OpMode {
     //private Paths paths; // Paths defined in the Paths class
     private Pose testPose = new Pose(14.5, 100, Math.toRadians(90));
     private Pose startPose = new Pose(14.5, 113, Math.toRadians(90));
-    private Pose launchPose = new Pose(50, 95, Math.toRadians(142));
+    private Pose launchPose = new Pose(50, 95, Math.toRadians(135));
     private Pose midReturnControl = new Pose(40, 50, 0);
     private Pose moveToClose = new Pose(45, 83, 0);
     private Pose collectClose = new Pose(16, 83, 0);
-    private Pose moveToMid = new Pose(45, 57, 0);
-    private Pose collectMid = new Pose(8, 57, 0);
+    private Pose moveToMid = new Pose(45, 59, 0);
+    private Pose collectMid = new Pose(8, 59, 0);
     private Pose moveToFar = new Pose(45, 35, 0);
     private Pose collectFar = new Pose(10, 35, 0);
-    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar;
+    private Pose leavePose = new Pose(45, 80,  Math.toRadians(135));
+    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, leave;
     private Path preloaded;
     PeregrineShooter peregrineShooter = new PeregrineShooter();
 
@@ -110,6 +110,9 @@ public class Close15_3rd_Gate extends OpMode {
         shootFar = follower.pathBuilder()
                 .addPath(new BezierLine(collectFar, launchPose))
                 .setLinearHeadingInterpolation(collectFar.getHeading(), launchPose.getHeading()).build();
+        leave = follower.pathBuilder()
+                .addPath(new BezierLine(launchPose, leavePose))
+                .setLinearHeadingInterpolation(launchPose.getHeading(), leavePose.getHeading()).build();
     }
 
 
@@ -260,7 +263,7 @@ public class Close15_3rd_Gate extends OpMode {
                 break;
             case 1:
                 if (!follower.isBusy() && !peregrineShooter.isBusy()) {
-                    peregrineShooter.launchBallsPrepared();
+                    peregrineShooter.launchBallsNoServo();
                     setPathState(2);
                 }
                 break;
@@ -274,7 +277,7 @@ public class Close15_3rd_Gate extends OpMode {
                 if (!follower.isBusy())
                 {
                     peregrineShooter.Intake();
-                    follower.followPath(intakeClose, 0.5, true);
+                    follower.followPath(intakeClose);
                     setPathState(4);
                 }
                 break;
@@ -302,7 +305,7 @@ public class Close15_3rd_Gate extends OpMode {
             case 7:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(intakeMed, .5, true);
+                    follower.followPath(intakeMed);
                     peregrineShooter.Intake();
                     setPathState(8);
                 }
@@ -349,6 +352,13 @@ public class Close15_3rd_Gate extends OpMode {
                 if (!follower.isBusy() && !peregrineShooter.isBusy())
                 {
                     peregrineShooter.launchBallsNoServo();
+                    setPathState(14);
+                }
+                break;
+            case 14:
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                {
+                    follower.followPath(leave);
                     setPathState(-1);
                 }
 

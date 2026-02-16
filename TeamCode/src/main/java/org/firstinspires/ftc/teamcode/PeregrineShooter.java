@@ -29,7 +29,9 @@ public class PeregrineShooter {
         PREPARE,
         LAUNCH,
         PREPARESHOOT,
-        LAUNCH_NOSERVO
+        LAUNCH_NOSERVO,
+        FAR_PREPARE,
+        FAR_SHOOT
     }
     //public boolean isBusy = false;
 
@@ -50,42 +52,41 @@ public class PeregrineShooter {
         switch(currentState) {
             case IDLE:
 
-                    launcher.setVelocity(0);
-                    pusher.setPosition(.75);
-                    belt.setPower(0);
-                    intake.setPower(0);
+                launcher.setVelocity(0);
+                pusher.setPosition(.75);
+                belt.setPower(0);
+                intake.setPower(0);
 
                 break;
             case PREPARESHOOT:
-                    //stateTimer.reset();
-                    if (stateTimer.seconds() < 2.5)
-                        launcher.setVelocity(1300);
-                    else if (stateTimer.seconds() >= 2.5) {
-                        changeState(LauncherState.LAUNCH);
+                //stateTimer.reset();
+                if (stateTimer.seconds() < 2.5)
+                    launcher.setVelocity(1350);
+                else if (stateTimer.seconds() >= 2.5) {
+                    changeState(LauncherState.LAUNCH);
 
                 }
                 break;
             case LAUNCH:
 
-                    //stateTimer.reset();
-                    launcher.setVelocity(1250);
-                    intake.setPower(-1);
+                //stateTimer.reset();
+                launcher.setVelocity(1350);
+                intake.setPower(-1);
+                belt.setPower(1);
+                if (stateTimer.seconds() <= .5) {
+                    pusher.setPosition(0);
+                }
+                //pusher.setPosition(0);
+                if (stateTimer.seconds() > .5) {
+                    pusher.setPosition(.75);
+                    launcher.setVelocity(1300);
+                }
+                if (stateTimer.seconds() >= .85) {
                     belt.setPower(1);
-                    if (stateTimer.seconds() <= .5)
-                    {
-                        pusher.setPosition(0);
-                    }
-                    //pusher.setPosition(0);
-                    if (stateTimer.seconds() > .5) {
-                        pusher.setPosition(.75);
-                        launcher.setVelocity(1300);
-                    }
-                    if (stateTimer.seconds() >= .85) {
-                        belt.setPower(1);
-                    }
-                    if (stateTimer.seconds() > 2) {
-                        changeState(LauncherState.IDLE);
-                    }
+                }
+                if (stateTimer.seconds() > 2) {
+                    changeState(LauncherState.IDLE);
+                }
 
                 break;
             case PREPARE:
@@ -94,17 +95,66 @@ public class PeregrineShooter {
                 break;
             case LOAD:
                 intake.setPower(-1);
-                belt.setPower(.75);
+                belt.setPower(.25);
                 launcher.setVelocity(-1000);
                 break;
             case LAUNCH_NOSERVO:
-                launcher.setVelocity(1300);
+                launcher.setVelocity(1275);
                 intake.setPower(-1);
                 belt.setPower(1);
+                if (stateTimer.seconds() > 1.6) {
+                    pusher.setPosition(0);
+                }
                 if (stateTimer.seconds() > 2) {
                     changeState(LauncherState.IDLE);
                 }
+                break;
+            case FAR_PREPARE:
+                if (stateTimer.seconds() <= 2) {
+                    launcher.setVelocity(1650);
+                    //belt.setPower(-.1)
+                } else {
+                    changeState(LauncherState.IDLE);
+                }
+                break;
+            case FAR_SHOOT:
+                launcher.setVelocity(1650);
+                if (stateTimer.seconds() < .75) {
+                    pusher.setPosition(0);
+                } else {
+                    pusher.setPosition(.75);
+                    launcher.setVelocity(1800);
+                }
 
+                if (stateTimer.seconds() >= .9 && stateTimer.seconds() <= 1.2) {
+                    belt.setPower(1);
+                } else if (stateTimer.seconds() > 1.2 && stateTimer.seconds() <= 1.7) {
+                    belt.setPower(0);
+                    launcher.setVelocity(1800);
+                } else
+                {
+                    belt.setPower(1);
+                }
+
+                if (stateTimer.seconds() >= 2.5)
+                {
+                    pusher.setPosition(0);
+                }
+                else if (stateTimer.seconds() > 3)
+                {
+                    changeState(LauncherState.IDLE);
+                }
+                /*intake.setPower(-1);
+                belt.setPower(.5);
+                if (stateTimer.seconds() > 1.25)
+                {
+                    //pusher.setPosition(0);
+                    belt.setPower(1);
+                }
+                if (stateTimer.seconds() > 2) {
+                    changeState(LauncherState.IDLE);
+                }*/
+                break;
         }
 
     }
@@ -146,6 +196,17 @@ public class PeregrineShooter {
     public void launchBallsNoServo()
     {
         changeState(LauncherState.LAUNCH_NOSERVO);
+    }
+
+    public void prepareFar()
+    {
+        if (!isBusy())
+            changeState(LauncherState.FAR_PREPARE);
+    }
+
+    public void shootFar()
+    {
+        changeState(LauncherState.FAR_SHOOT);
     }
     /*public void launchBallsPrepared(double delay)
     {

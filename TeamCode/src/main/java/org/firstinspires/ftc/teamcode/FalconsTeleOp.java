@@ -12,7 +12,7 @@ import com.qualcomm.robotcore.hardware.VoltageSensor;
 public class FalconsTeleOp extends OpMode {
     //Initialize motors, servos, sensors, imus, etc.
     DcMotorEx motorLF, motorRF, motorLB, motorRB, belt, ball, rhino;
-    Servo pusher;
+    Servo pusher, light;
     // TODO: Uncomment the following line if you are using servos
     //Servo claw;
 
@@ -64,6 +64,7 @@ public class FalconsTeleOp extends OpMode {
         // Use the following line as a template for defining new servos
         //Claw = (Servo) hardwareMap.servo.get("claw");
         pusher = (Servo) hardwareMap.servo.get("pusher");
+        light = (Servo) hardwareMap.servo.get("light");
 
         belt.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         ball.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -193,19 +194,29 @@ public class FalconsTeleOp extends OpMode {
         {
                 /*multiplier = 13/voltageSensor.getVoltage();
                 rhino.setPower(.75 * multiplier);*/
-            rhino.setVelocity(1800);
+            rhino.setVelocity(1650);
+            light.setPosition(.35);
+            if (rhino.getVelocity() >= 1650)
+            {
+                light.setPosition(.35);
+            }
         }
         else if (reverse_launcher)
         {
                 /*multiplier = 13/voltageSensor.getVoltage();
                 rhino.setPower(.57 * multiplier);*/
             //rhino.setVelocity(20520, AngleUnit.DEGREES);
-            rhino.setVelocity(1400);
-
+            rhino.setVelocity(1300);
+            light.setPosition(.35);
+            if (rhino.getVelocity() >= 1300)
+            {
+                light.setPosition(.35);
+            }
         }
         else
         {
             rhino.setPower(0);
+            light.setPosition(0);
         }
 
         boolean pusherIn = gamepad2.dpad_right;
@@ -219,6 +230,8 @@ public class FalconsTeleOp extends OpMode {
         {
             pusher.setPosition(.75);
         }
+
+
         // If you want to print information to the Driver Station, use telemetry
         // addData() lets you give a string which is automatically followed by a ":" when printed
         //     the variable that you list after the comma will be displayed next to the label
