@@ -99,7 +99,7 @@ public class PeregrineShooter {
                 launcher.setVelocity(-1000);
                 break;
             case LAUNCH_NOSERVO:
-                launcher.setVelocity(1275);
+                launcher.setVelocity(1300);
                 intake.setPower(-1);
                 belt.setPower(1);
                 if (stateTimer.seconds() > 1.6) {

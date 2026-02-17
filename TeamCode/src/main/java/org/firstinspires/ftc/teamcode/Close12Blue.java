@@ -21,7 +21,7 @@ public class Close12Blue extends OpMode {
     //private Paths paths; // Paths defined in the Paths class
     private Pose testPose = new Pose(14.5, 100, Math.toRadians(90));
     private Pose startPose = new Pose(14.5, 113, Math.toRadians(90));
-    private Pose launchPose = new Pose(50, 95, Math.toRadians(135));
+    private Pose launchPose = new Pose(50, 95, Math.toRadians(140));
     private Pose midReturnControl = new Pose(40, 50, 0);
     private Pose moveToClose = new Pose(45, 83, 0);
     private Pose collectClose = new Pose(16, 83, 0);
@@ -30,7 +30,9 @@ public class Close12Blue extends OpMode {
     private Pose moveToFar = new Pose(45, 35, 0);
     private Pose collectFar = new Pose(10, 35, 0);
     private Pose leavePose = new Pose(45, 80,  Math.toRadians(135));
-    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, leave;
+    private Pose gatePose = new Pose(13, 73, 0);
+    private Pose gateControlPose = new Pose(30, 78, 0);
+    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, leave, gateLast, gateClose;
     private Path preloaded;
     PeregrineShooter peregrineShooter = new PeregrineShooter();
 
@@ -90,8 +92,8 @@ public class Close12Blue extends OpMode {
                 .addPath(new BezierLine(moveToClose, collectClose))
                 .setLinearHeadingInterpolation(moveToClose.getHeading(), collectClose.getHeading()).build();
         shootClose = follower.pathBuilder()
-                .addPath(new BezierLine(collectClose, launchPose))
-                .setLinearHeadingInterpolation(collectClose.getHeading(), launchPose.getHeading()).build();
+                .addPath(new BezierLine(gatePose, launchPose))
+                .setLinearHeadingInterpolation(gatePose.getHeading(), launchPose.getHeading()).build();
         moveMed = follower.pathBuilder()
                 .addPath(new BezierLine(launchPose, moveToMid))
                 .setLinearHeadingInterpolation(launchPose.getHeading(), moveToMid.getHeading()).build();
@@ -113,6 +115,12 @@ public class Close12Blue extends OpMode {
         leave = follower.pathBuilder()
                 .addPath(new BezierLine(launchPose, leavePose))
                 .setLinearHeadingInterpolation(launchPose.getHeading(), leavePose.getHeading()).build();
+        gateLast = follower.pathBuilder()
+                .addPath(new BezierCurve(launchPose, gateControlPose, gatePose))
+                .setLinearHeadingInterpolation(launchPose.getHeading(), gatePose.getHeading()).build();
+        gateClose = follower.pathBuilder()
+                .addPath(new BezierCurve(collectClose, gateControlPose, gatePose))
+                .setLinearHeadingInterpolation(collectClose.getHeading(), gatePose.getHeading()).build();
     }
 
 
@@ -284,78 +292,84 @@ public class Close12Blue extends OpMode {
             case 4:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(shootClose);
-                    peregrineShooter.PrepareBalls();
+                    follower.followPath(gateClose);
                     setPathState(5);
                 }
-                break;
             case 5:
-                if (!follower.isBusy() && !peregrineShooter.isBusy()) {
-                    peregrineShooter.launchBallsNoServo();
+                if (!follower.isBusy())
+                {
+                    follower.followPath(shootClose);
+                    peregrineShooter.PrepareBalls();
                     setPathState(6);
                 }
                 break;
             case 6:
-                if (!peregrineShooter.isBusy())
-                {
-                    follower.followPath(moveMed);
+                if (!follower.isBusy() && !peregrineShooter.isBusy()) {
+                    peregrineShooter.launchBallsNoServo();
                     setPathState(7);
                 }
                 break;
             case 7:
-                if (!follower.isBusy())
+                if (!peregrineShooter.isBusy())
                 {
-                    follower.followPath(intakeMed);
-                    peregrineShooter.Intake();
+                    follower.followPath(moveMed);
                     setPathState(8);
                 }
                 break;
             case 8:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(shootMed);
-                    peregrineShooter.PrepareBalls();
+                    follower.followPath(intakeMed);
+                    peregrineShooter.Intake();
                     setPathState(9);
                 }
                 break;
             case 9:
-                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                if (!follower.isBusy())
                 {
-                    peregrineShooter.launchBallsNoServo();
+                    follower.followPath(shootMed);
+                    peregrineShooter.PrepareBalls();
                     setPathState(10);
                 }
                 break;
             case 10:
-                if (!peregrineShooter.isBusy())
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
                 {
-                    follower.followPath(moveFar);
+                    peregrineShooter.launchBallsNoServo();
                     setPathState(11);
                 }
                 break;
             case 11:
-                if (!follower.isBusy())
+                if (!peregrineShooter.isBusy())
                 {
-                    follower.followPath(intakeFar);
-                    peregrineShooter.Intake();
+                    follower.followPath(moveFar);
                     setPathState(12);
                 }
                 break;
             case 12:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(shootFar);
-                    peregrineShooter.PrepareBalls();
+                    follower.followPath(intakeFar);
+                    peregrineShooter.Intake();
                     setPathState(13);
                 }
                 break;
             case 13:
-                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                if (!follower.isBusy())
                 {
-                    peregrineShooter.launchBallsNoServo();
+                    follower.followPath(shootFar);
+                    peregrineShooter.PrepareBalls();
                     setPathState(14);
                 }
                 break;
             case 14:
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                {
+                    peregrineShooter.launchBallsNoServo();
+                    setPathState(15);
+                }
+                break;
+            case 15:
                 if (!follower.isBusy() && !peregrineShooter.isBusy())
                 {
                     follower.followPath(leave);
