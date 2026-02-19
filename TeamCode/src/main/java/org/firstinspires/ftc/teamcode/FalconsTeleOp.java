@@ -32,7 +32,8 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 @TeleOp
 public class FalconsTeleOp extends OpMode {
     private Follower follower;
-    public static Pose startingPose; //See ExampleAuto to understand how to use this
+    public static Pose startingPose = new Pose(45, 80, Math.toRadians(135)); //See ExampleAuto to understand how to use this
+    public static Pose LaunchPose = new Pose(50, 95, Math.toRadians(140));
     private boolean automatedDrive;
     private TelemetryManager telemetryM;
     private Supplier<PathChain> pathChain;
@@ -47,16 +48,6 @@ public class FalconsTeleOp extends OpMode {
 
     // The following code will run as soon as "INIT" is pressed on the Driver Station
 
-    @Override
-    public void init_loop()
-    {
-        if (gamepad1.dpad_left)
-        {
-            startingPose = new Pose(45, 80, Math.toRadians(135));
-            follower.setStartingPose(startingPose);
-            follower.update();
-        }
-    }
 
     //brochacho i just nut frfr
 
@@ -65,8 +56,14 @@ public class FalconsTeleOp extends OpMode {
 
         follower = Constants.createFollower(hardwareMap);
         telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
+        follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
+
+        pathChain = () -> follower.pathBuilder() //Lazy Curve Generation (six seven)
+                .addPath(new Path(new BezierLine(follower::getPose, new Pose(50, 95))))
+                .setLinearHeadingInterpolation(follower.getHeading(), LaunchPose.getHeading())
+                .build();
         // Set up drive motors
         // The names for each motor are taken from the driveConstants in the Constants file
         // TODO: Update "Constants" with the names of your drive motors from the driver station configuration file
@@ -287,17 +284,12 @@ public class FalconsTeleOp extends OpMode {
 
         if (gamepad1.aWasPressed())
         {
-            pathChain = () -> follower.pathBuilder() //Lazy Curve Generation (six seven)
-                    .addPath(new Path(new BezierLine(new Pose(pinpoint.getPosX(DistanceUnit.INCH), pinpoint.getPosY(DistanceUnit.INCH)), new Pose(50, 95))))
-                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(140), 0.8))
-                    .build();
-            follower.followPath(pathChain.get());
+            follower.followPath(pathChain.get(), true);
             automatedDrive = true;
             //follower.update();
-            //max.goon();
         }
 
-        if (!follower.isBusy())
+        if (!follower.isBusy() || gamepad1.aWasReleased())
         {
             automatedDrive = false;
         }
@@ -305,11 +297,6 @@ public class FalconsTeleOp extends OpMode {
         if (automatedDrive)
         {
             follower.update();
-        }
-
-        if (gamepad1.aWasReleased())
-        {
-            automatedDrive = false;
         }
 
         // If you want to print information to the Driver Station, use telemetry
