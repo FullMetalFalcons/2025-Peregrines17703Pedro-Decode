@@ -1,6 +1,11 @@
 package org.firstinspires.ftc.teamcode;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
+import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -8,8 +13,32 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
+import com.pedropathing.paths.Path;
+import com.pedropathing.paths.PathChain;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+
+import java.util.function.Supplier;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+
+@Configurable
 @TeleOp
 public class FalconsTeleOp extends OpMode {
+    private Follower follower;
+    public static Pose startingPose; //See ExampleAuto to understand how to use this
+    private boolean automatedDrive;
+    private TelemetryManager telemetryM;
+    private Supplier<PathChain> pathChain;
+    GoBildaPinpointDriver pinpoint;
+
+
     //Initialize motors, servos, sensors, imus, etc.
     DcMotorEx motorLF, motorRF, motorLB, motorRB, belt, ball, rhino;
     Servo pusher, light;
@@ -17,8 +46,26 @@ public class FalconsTeleOp extends OpMode {
     //Servo claw;
 
     // The following code will run as soon as "INIT" is pressed on the Driver Station
+
+    @Override
+    public void init_loop()
+    {
+        if (gamepad1.dpad_left)
+        {
+            startingPose = new Pose(45, 80, Math.toRadians(135));
+            follower.setStartingPose(startingPose);
+            follower.update();
+        }
+    }
+
+    //brochacho i just nut frfr
+
     @Override
     public void init() {
+
+        follower = Constants.createFollower(hardwareMap);
+        telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
         // Set up drive motors
         // The names for each motor are taken from the driveConstants in the Constants file
@@ -63,7 +110,7 @@ public class FalconsTeleOp extends OpMode {
         //imu = lazyImu.get();
         // Use the following line as a template for defining new servos
         //Claw = (Servo) hardwareMap.servo.get("claw");
-        pusher = (Servo) hardwareMap.servo.get("pusher");
+        pusher = (Servo) hardwareMap.servo.get("pusher");  //push my dih in yo buh twink
         light = (Servo) hardwareMap.servo.get("light");
 
         belt.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
@@ -86,6 +133,13 @@ public class FalconsTeleOp extends OpMode {
     public void loop() {
 
         boolean slowMode = gamepad1.right_bumper;
+
+        //follower.update();
+
+            motorLF.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+            motorLB.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+            motorRF.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+            motorRB.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         // Mecanum drive code
         double powerX = 0.0;  // Desired power for strafing           (-1 to 1)
         double powerY = 0.0;  // Desired power for forward/backward   (-1 to 1)
@@ -138,14 +192,14 @@ public class FalconsTeleOp extends OpMode {
             powerRB /= 10;
         }
 
-        if (!reverseDrive)
+        if (!reverseDrive && !automatedDrive)
         {
             motorLF.setPower(powerLF);
             motorLB.setPower(powerLB);
             motorRF.setPower(powerRF);
             motorRB.setPower(powerRB);
         }
-        else
+        else if (!automatedDrive)
         {
             motorLF.setPower(-powerLF);
             motorLB.setPower(-powerLB);
@@ -231,18 +285,49 @@ public class FalconsTeleOp extends OpMode {
             pusher.setPosition(.75);
         }
 
+        if (gamepad1.aWasPressed())
+        {
+            pathChain = () -> follower.pathBuilder() //Lazy Curve Generation (six seven)
+                    .addPath(new Path(new BezierLine(new Pose(pinpoint.getPosX(DistanceUnit.INCH), pinpoint.getPosY(DistanceUnit.INCH)), new Pose(50, 95))))
+                    .setHeadingInterpolation(HeadingInterpolator.linearFromPoint(follower::getHeading, Math.toRadians(140), 0.8))
+                    .build();
+            follower.followPath(pathChain.get());
+            automatedDrive = true;
+            //follower.update();
+            //max.goon();
+        }
+
+        if (!follower.isBusy())
+        {
+            automatedDrive = false;
+        }
+
+        if (automatedDrive)
+        {
+            follower.update();
+        }
+
+        if (gamepad1.aWasReleased())
+        {
+            automatedDrive = false;
+        }
 
         // If you want to print information to the Driver Station, use telemetry
         // addData() lets you give a string which is automatically followed by a ":" when printed
         //     the variable that you list after the comma will be displayed next to the label
         // update() only needs to be run once and will "push" all of the added data
 
+        //double robotX = pinpoint.getPosX(DistanceUnit.INCH);
         telemetry.addData("PerpEncoderTicks",belt.getCurrentPosition());
         telemetry.addData("Launcher Encoder Ticks", rhino.getCurrentPosition());
         telemetry.addData("LF power", powerLF);
         telemetry.addData("LB power", powerLB);
         telemetry.addData("RF power", powerRF);
         telemetry.addData("RB power", powerRB);
+        telemetry.addData("follower Busy", follower.isBusy());
+        telemetry.addData("position", follower.getPose());
+        telemetry.addData("pos X", pinpoint.getPosX(DistanceUnit.INCH));
+        telemetry.addData("pos Y", pinpoint.getPosY(DistanceUnit.INCH));
         //telemetry.addData("Launcher power", (.65 * multiplier));
         telemetry.update();
 
