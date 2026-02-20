@@ -21,10 +21,13 @@ public class FarBlue extends OpMode {
     private int pathState; // Current autonomous path state (state machine)
     //private Paths paths; // Paths defined in the Paths class
     private Pose startPose = new Pose(56, 8, Math.toRadians(90));
-    private Pose launchPose = new Pose(56, 16, Math.toRadians(120));
+    private Pose launchPose = new Pose(56, 16, Math.toRadians(125));
     private Pose moveToClose = new Pose(45, 35, 0);
     private Pose collectClose = new Pose(10, 35, 0);
-    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar;
+    private Pose moveToPlayer = new Pose(10, 30, Math.toRadians(90));
+    private Pose collectPlayerZone = new Pose(8
+            , 10, Math.toRadians(90));
+    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, movePlayer, collectPlayer, shootPZ;
     private Path preloaded;
     PeregrineShooter peregrineShooter = new PeregrineShooter();
 
@@ -86,6 +89,15 @@ public class FarBlue extends OpMode {
         shootClose = follower.pathBuilder()
                 .addPath(new BezierLine(collectClose, launchPose))
                 .setLinearHeadingInterpolation(collectClose.getHeading(), launchPose.getHeading()).build();
+        movePlayer = follower.pathBuilder()
+                .addPath(new BezierLine(launchPose, moveToPlayer))
+                .setLinearHeadingInterpolation(launchPose.getHeading(), moveToPlayer.getHeading()).build();
+        collectPlayer = follower.pathBuilder()
+                .addPath(new BezierLine(moveToPlayer, collectPlayerZone))
+                .setLinearHeadingInterpolation(moveToPlayer.getHeading(), collectPlayerZone.getHeading()).build();
+        shootPZ = follower.pathBuilder()
+                .addPath(new BezierLine(collectPlayerZone, launchPose))
+                .setLinearHeadingInterpolation(collectPlayerZone.getHeading(), launchPose.getHeading()).build();
     }
 
 
@@ -100,12 +112,13 @@ public class FarBlue extends OpMode {
                 break;
             case 1:
                 if (!follower.isBusy() && !peregrineShooter.isBusy()) {
-                    peregrineShooter.shootFar();
+                    peregrineShooter.shootFarNoServo();
                     setPathState(2);
                 }
                 break;
             case 2:
-                if (!peregrineShooter.isBusy()) {
+                if (!peregrineShooter.isBusy())
+                {
                     follower.followPath(moveClose);
                     setPathState(3);
                 }
@@ -113,11 +126,55 @@ public class FarBlue extends OpMode {
             case 3:
                 if (!follower.isBusy())
                 {
+                    follower.followPath(intakeClose);
                     peregrineShooter.Intake();
-                    follower.followPath(intakeClose, 0.5, true);
-                    setPathState(-1);
+                    setPathState(4);
                 }
                 break;
+            case 4:
+                if (!peregrineShooter.isBusy() && !follower.isBusy())
+                {
+                    follower.followPath(shootClose);
+                    peregrineShooter.prepareFar();
+                    setPathState(5);
+                }
+                break;
+            case 5:
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                {
+                    peregrineShooter.shootFarNoServo();
+                    setPathState(6);
+                }
+                break;
+            case 6:
+                if (!peregrineShooter.isBusy())
+                {
+                    follower.followPath(movePlayer);
+                    setPathState(7);
+                }
+                break;
+            case 7:
+                if (!follower.isBusy())
+                {
+                    follower.followPath(collectPlayer, .4, true);
+                    peregrineShooter.Intake();
+                    setPathState(8);
+                }
+                break;
+            case 8:
+                if (!peregrineShooter.isBusy() && !follower.isBusy())
+                {
+                    follower.followPath(shootPZ);
+                    peregrineShooter.prepareFar();
+                    setPathState(9);
+                }
+                break;
+            case 9:
+                if (!follower.isBusy() && !peregrineShooter.isBusy())
+                {
+                    peregrineShooter.shootFarNoServo();
+                    setPathState(-1);
+                }
 
         }
         // Add your state machine Here

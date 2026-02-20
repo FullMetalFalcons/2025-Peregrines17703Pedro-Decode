@@ -294,10 +294,21 @@ public class FalconsTeleOp extends OpMode {
             automatedDrive = false;
         }
 
+        if (gamepad1.aWasReleased())
+        {
+            follower.startTeleopDrive();
+        }
+
         if (automatedDrive)
         {
             follower.update();
         }
+        /*if (true == false)
+        {
+            follower.setTeleOpDrive(
+                    0, 0, 0, 0
+            );
+        }*/
 
         // If you want to print information to the Driver Station, use telemetry
         // addData() lets you give a string which is automatically followed by a ":" when printed

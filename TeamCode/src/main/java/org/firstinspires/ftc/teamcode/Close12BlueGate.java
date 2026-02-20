@@ -13,7 +13,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.Timer;
 
 @Autonomous
-public class Close12Red extends OpMode {
+public class Close12BlueGate extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     private Timer pathTimer, actionTimer, opmodeTimer;
     private Follower follower; // Pedro Pathing follower instance
@@ -21,7 +21,7 @@ public class Close12Red extends OpMode {
     //private Paths paths; // Paths defined in the Paths class
     private Pose testPose = new Pose(14.5, 100, Math.toRadians(90));
     private Pose startPose = new Pose(14.5, 113, Math.toRadians(90));
-    private Pose launchPose = new Pose(50, 95, Math.toRadians(141));
+    private Pose launchPose = new Pose(50, 95, Math.toRadians(140));
     private Pose midReturnControl = new Pose(40, 50, 0);
     private Pose moveToClose = new Pose(45, 83, 0);
     private Pose collectClose = new Pose(16, 83, 0);
@@ -30,27 +30,15 @@ public class Close12Red extends OpMode {
     private Pose moveToFar = new Pose(45, 35, 0);
     private Pose collectFar = new Pose(10, 35, 0);
     private Pose leavePose = new Pose(45, 80,  Math.toRadians(135));
-    private Pose gatePose = new Pose(13, 73, 0);
+    private Pose gatePose = new Pose(15, 73, 0);
     private Pose gateControlPose = new Pose(30, 78, 0);
-    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, leave, gateLast, gateClose;
+    private Pose gateMidControlPose = new Pose(30, 65, 0);
+    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, leave, gateLast, gateClose, gateMed;
     private Path preloaded;
     PeregrineShooter peregrineShooter = new PeregrineShooter();
 
     @Override
     public void init() {
-        startPose = startPose.mirror();
-        launchPose = launchPose.mirror();
-        midReturnControl = midReturnControl.mirror();
-        moveToClose = moveToClose.mirror();
-        collectClose = collectClose.mirror();
-        moveToMid = moveToMid.mirror();
-        collectMid = collectMid.mirror();
-        moveToFar = moveToFar.mirror();
-        collectFar = collectFar.mirror();
-        leavePose = leavePose.mirror();
-        gatePose = gatePose.mirror();
-        gateControlPose = gateControlPose.mirror();
-
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         follower = Constants.createFollower(hardwareMap);
@@ -134,6 +122,9 @@ public class Close12Red extends OpMode {
         gateClose = follower.pathBuilder()
                 .addPath(new BezierCurve(collectClose, gateControlPose, gatePose))
                 .setLinearHeadingInterpolation(collectClose.getHeading(), gatePose.getHeading()).build();
+        gateMed = follower.pathBuilder()
+                .addPath(new BezierCurve(collectMid, gateMidControlPose, gatePose))
+                .setLinearHeadingInterpolation(collectMid.getHeading(), gatePose.getHeading()).build();
     }
 
 
@@ -290,7 +281,7 @@ public class Close12Red extends OpMode {
                 break;
             case 2:
                 if (!peregrineShooter.isBusy()) {
-                    follower.followPath(moveClose);
+                    follower.followPath(moveMed);
                     setPathState(3);
                 }
                 break;
@@ -298,20 +289,20 @@ public class Close12Red extends OpMode {
                 if (!follower.isBusy())
                 {
                     peregrineShooter.Intake();
-                    follower.followPath(intakeClose);
+                    follower.followPath(intakeMed);
                     setPathState(4);
                 }
                 break;
             case 4:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(gateClose);
+                    follower.followPath(gateMed);
                     setPathState(5);
                 }
             case 5:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(shootClose);
+                    follower.followPath(shootMed);
                     peregrineShooter.PrepareBalls();
                     setPathState(6);
                 }
@@ -325,22 +316,28 @@ public class Close12Red extends OpMode {
             case 7:
                 if (!peregrineShooter.isBusy())
                 {
-                    follower.followPath(moveMed);
+                    follower.followPath(moveClose);
                     setPathState(8);
                 }
                 break;
             case 8:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(intakeMed);
+                    follower.followPath(intakeClose);
                     peregrineShooter.Intake();
-                    setPathState(9);
+                    setPathState(81);
                 }
                 break;
+            case 81:
+                if (!follower.isBusy())
+                {
+                    follower.followPath(gateClose);
+                    setPathState(9);
+                }
             case 9:
                 if (!follower.isBusy())
                 {
-                    follower.followPath(shootMed);
+                    follower.followPath(shootClose);
                     peregrineShooter.PrepareBalls();
                     setPathState(10);
                 }
