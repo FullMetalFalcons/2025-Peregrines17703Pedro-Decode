@@ -14,7 +14,7 @@ import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @Autonomous
-public class PenguinCoopBlue extends OpMode {
+public class PenguinCoopRed extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     private Timer pathTimer, actionTimer, opmodeTimer;
     private ElapsedTime timer = new ElapsedTime();
@@ -34,6 +34,14 @@ public class PenguinCoopBlue extends OpMode {
 
     @Override
     public void init() {
+        startPose = startPose.mirror();
+        launchPose = launchPose.mirror();
+        moveToClose = moveToClose.mirror();
+        collectClose = collectClose.mirror();
+        gateCollect = gateCollect.mirror();
+        gateCollectControlPoint = gateCollectControlPoint.mirror();
+        leavePose = leavePose.mirror();
+
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         follower = Constants.createFollower(hardwareMap);
