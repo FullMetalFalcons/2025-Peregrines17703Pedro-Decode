@@ -22,7 +22,7 @@ public class PenguinCoopRed extends OpMode {
     private int pathState; // Current autonomous path state (state machine)
     //private Paths paths; // Paths defined in the Paths class
     private Pose startPose = new Pose(14.5, 113, Math.toRadians(90));
-    private Pose launchPose = new Pose(50, 95, Math.toRadians(140));
+    private Pose launchPose = new Pose(50, 95, Math.toRadians(141));
     private Pose moveToClose = new Pose(45, 83, 0);
     private Pose collectClose = new Pose(16, 83, 0);
     private Pose gateCollect = new Pose(9, 37, Math.toRadians(290));
