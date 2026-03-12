@@ -14,7 +14,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.Timer;
 
 @Autonomous
-public class FarBlue extends OpMode {
+public class FarRed extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     private Timer pathTimer, actionTimer, opmodeTimer;
     private Follower follower; // Pedro Pathing follower instance
@@ -28,12 +28,19 @@ public class FarBlue extends OpMode {
     private Pose collectPlayerZone = new Pose(8
             , 10, Math.toRadians(90));
     private Pose leavePose = new Pose(56, 24, Math.toRadians(125));
-    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, movePlayer, collectPlayer, shootPZ, leave;
+    private PathChain moveClose, intakeClose, shootClose, moveMed, intakeMed, shootMed, moveFar, intakeFar, shootFar, movePlayer, collectPlayer, shootPZ,  leave;
     private Path preloaded;
     PeregrineShooter peregrineShooter = new PeregrineShooter();
 
     @Override
     public void init() {
+        startPose = startPose.mirror();
+        launchPose = launchPose.mirror();
+        moveToClose = moveToClose.mirror();
+        collectClose = collectClose.mirror();
+        moveToPlayer = moveToPlayer.mirror();
+        collectPlayerZone = collectPlayerZone.mirror();
+        leavePose = leavePose.mirror();
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         follower = Constants.createFollower(hardwareMap);
