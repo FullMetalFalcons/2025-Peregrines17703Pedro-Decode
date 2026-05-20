@@ -164,28 +164,30 @@ public class PeregrinesTeleOp extends OpMode {
         motorRB.setPower(powerRB);
 
         if (gamepad1.right_bumper) {
-            intake.setPower(1);
+            intake.setPower(-1);
         }
         else if (gamepad1.left_bumper) {
-            intake.setPower(-1);
+            intake.setPower(1);
         }
         else {
             intake.setPower(0);
         }
 
-        if (gamepad1.right_trigger >= 0.2 || gamepad1.left_trigger >= 0.2) {
+        if (gamepad1.right_trigger >= 0.2) {
             rhinoL.setPower(-1);
             rhinoR.setPower(1);
-            isOpen = true;
         }
         else {
             rhinoL.setPower(0);
             rhinoR.setPower(0);
-            isOpen = false;
         }
 
-        if (isOpen) {eat.setPosition(0.5);}
-        else {eat.setPosition(0);}
+        if (gamepad1.aWasPressed()) {
+            eat.setPosition(0.5);
+        }
+        if (gamepad1.bWasPressed()) {
+            eat.setPosition(0);
+        }
 
 
 
