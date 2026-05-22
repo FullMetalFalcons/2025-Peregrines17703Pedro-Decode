@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.PIDFCoefficients;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
@@ -33,10 +35,20 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 @TeleOp
 public class PeregrinesTeleOp extends OpMode {
     //GoBildaPinpointDriver pinpoint;
+    TelemetryManager telemetryManager;
 
     boolean isOpen = false;
 
-    GoBildaPinpointDriver pinpoint;
+    public static double flywheelVelocity = 2900;
+    public static double flywheelF = 0.35;
+    public static double flywheelP = 70;
+
+
+    // Unit conversion constants
+    final double TICKS_PER_ROTATION = 28;
+    final double TPS_PER_RPM = TICKS_PER_ROTATION / 60;
+
+    //GoBildaPinpointDriver pinpoint;
 
 
 
@@ -48,12 +60,13 @@ public class PeregrinesTeleOp extends OpMode {
     // The following code will run as soon as "INIT" is pressed on the Driver Station
 
 
-    //brochacho i just nut frfr
+
 
     @Override
     public void init() {
+        telemetryManager = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
+        //pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
         //pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
@@ -108,6 +121,9 @@ public class PeregrinesTeleOp extends OpMode {
         rhinoL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rhinoR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        rhinoL.setDirection(DcMotorSimple.Direction.REVERSE);
+        rhinoR.setDirection(DcMotorSimple.Direction.FORWARD);
+
         //voltageSensor = hardwareMap.get(VoltageSensor.class, "Control Hub");
 
     }
@@ -119,7 +135,6 @@ public class PeregrinesTeleOp extends OpMode {
     // Replaces the old  while(OpModeIsActive())  loop
     @Override
     public void loop() {
-
 
 
         //follower.update();
@@ -159,58 +174,81 @@ public class PeregrinesTeleOp extends OpMode {
         powerLB /= max;
         powerRF /= max;
         powerRB /= max;
-        //gooofy lefty
+
 
         motorLF.setPower(powerLF);
         motorLB.setPower(powerLB);
         motorRF.setPower(powerRF);
         motorRB.setPower(powerRB);
 
+        double velDifference = Math.abs(rhinoL.getVelocity() - rhinoR.getVelocity());
+
         if (gamepad1.right_bumper || gamepad2.right_bumper) {
             intake.setPower(-1);
         }
-        else if (gamepad1.left_bumper || gamepad2.left_bumper) {
+        else if ((gamepad1.left_bumper || gamepad2.left_bumper) && (((gamepad1.right_trigger >= 0.2 || gamepad2.right_trigger >= 0.2) && velDifference <= 20) || (gamepad1.right_trigger <= 0.2 || gamepad2.right_trigger <= 0.2))) {
             intake.setPower(1);
         }
         else {
             intake.setPower(0);
         }
 
+
+        // FLYWHEEL CODE
+        PIDFCoefficients flywheelCoefficients = new PIDFCoefficients(flywheelP, 0, 0, flywheelF);
+        rhinoL.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelCoefficients);
+        rhinoR.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelCoefficients);
+
+
         if (gamepad1.right_trigger >= 0.2 || gamepad2.right_trigger >= 0.2) {
-            rhinoL.setPower(-1);
-            rhinoR.setPower(1);
+            rhinoL.setVelocity(flywheelVelocity);
+            rhinoR.setVelocity(flywheelVelocity);
+            eat.setPosition(0.4);
         }
         else if (gamepad1.left_trigger >= 0.2 || gamepad2.left_trigger >= 0.2) {
-            rhinoL.setPower(1);
-            rhinoR.setPower(-1);
+            rhinoL.setVelocity(-flywheelVelocity);
+            rhinoR.setVelocity(-flywheelVelocity);
         }
         else {
             rhinoL.setPower(0);
             rhinoR.setPower(0);
+            eat.setPosition(0);
         }
-
+        /*
         if (gamepad1.aWasPressed() || gamepad2.aWasPressed()) {
             eat.setPosition(0.5);
         }
         if (gamepad1.bWasPressed() || gamepad2.bWasPressed()) {
             eat.setPosition(0);
-        }
+        }*/
 
         // If you want to print information to the Driver Station, use telemetry
         // addData() lets you give a string which is automatically followed by a ":" when printed
         //     the variable that you list after the comma will be displayed next to the label
         // update() only needs to be run once and will "push" all of the added data+
 
+        telemetryManager.addData("launchVel L", rhinoL.getVelocity());
+        telemetryManager.addData("launchVel R", rhinoR.getVelocity());
+
+        telemetryManager.addData("launchError L", flywheelVelocity - rhinoL.getVelocity());
+        telemetryManager.addData("launchError R", flywheelVelocity - rhinoR.getVelocity());
+
+        telemetryManager.addData("targetVel", flywheelVelocity);
+
+        telemetryManager.update();
 
         telemetry.addData("Open", isOpen);
         telemetry.addData("Servo Pos", eat.getPosition());
-        telemetry.addData("in close launch", launchDetection());
+        telemetry.addData("velocity R", rhinoR.getVelocity());
+        telemetry.addData("velocity L", rhinoL.getVelocity());
+        telemetry.addData("velocity difference", velDifference);
+        //telemetry.addData("in close launch", launchDetection());
         telemetry.update();
 
     }
 
     // Any additional methods go here
-
+/*
     public boolean launchDetection()
     {
         double pinX = pinpoint.getPosX(DistanceUnit.INCH);
@@ -231,6 +269,6 @@ public class PeregrinesTeleOp extends OpMode {
                 return false;
             }
         }
-    }
+    }*/
 
 }
