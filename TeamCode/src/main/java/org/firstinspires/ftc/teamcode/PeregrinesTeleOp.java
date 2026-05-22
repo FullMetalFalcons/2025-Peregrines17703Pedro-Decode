@@ -36,6 +36,9 @@ public class PeregrinesTeleOp extends OpMode {
 
     boolean isOpen = false;
 
+    GoBildaPinpointDriver pinpoint;
+
+
 
     //Initialize motors, servos, sensors, imus, etc.
     DcMotorEx motorLF, motorRF, motorLB, motorRB, intake, rhinoL, rhinoR;
@@ -49,6 +52,8 @@ public class PeregrinesTeleOp extends OpMode {
 
     @Override
     public void init() {
+
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
         //pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
 
@@ -115,8 +120,6 @@ public class PeregrinesTeleOp extends OpMode {
     @Override
     public void loop() {
 
-        //double pinX = pinpoint.getPosX(DistanceUnit.INCH);
-        //double pinY = pinpoint.getPosY(DistanceUnit.INCH);
 
 
         //follower.update();
@@ -163,44 +166,71 @@ public class PeregrinesTeleOp extends OpMode {
         motorRF.setPower(powerRF);
         motorRB.setPower(powerRB);
 
-        if (gamepad1.right_bumper) {
+        if (gamepad1.right_bumper || gamepad2.right_bumper) {
             intake.setPower(-1);
         }
-        else if (gamepad1.left_bumper) {
+        else if (gamepad1.left_bumper || gamepad2.left_bumper) {
             intake.setPower(1);
         }
         else {
             intake.setPower(0);
         }
 
-        if (gamepad1.right_trigger >= 0.2) {
+        if (gamepad1.right_trigger >= 0.2 || gamepad2.right_trigger >= 0.2) {
             rhinoL.setPower(-1);
             rhinoR.setPower(1);
+        }
+        else if (gamepad1.left_trigger >= 0.2 || gamepad2.left_trigger >= 0.2) {
+            rhinoL.setPower(1);
+            rhinoR.setPower(-1);
         }
         else {
             rhinoL.setPower(0);
             rhinoR.setPower(0);
         }
 
-        if (gamepad1.aWasPressed()) {
+        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()) {
             eat.setPosition(0.5);
         }
-        if (gamepad1.bWasPressed()) {
+        if (gamepad1.bWasPressed() || gamepad2.bWasPressed()) {
             eat.setPosition(0);
         }
-
-
 
         // If you want to print information to the Driver Station, use telemetry
         // addData() lets you give a string which is automatically followed by a ":" when printed
         //     the variable that you list after the comma will be displayed next to the label
         // update() only needs to be run once and will "push" all of the added data+
 
+
         telemetry.addData("Open", isOpen);
         telemetry.addData("Servo Pos", eat.getPosition());
+        telemetry.addData("in close launch", launchDetection());
+        telemetry.update();
 
     }
 
     // Any additional methods go here
+
+    public boolean launchDetection()
+    {
+        double pinX = pinpoint.getPosX(DistanceUnit.INCH);
+        double pinY = pinpoint.getPosY(DistanceUnit.INCH);
+
+        if (pinX >= 70) {
+            double minY = pinX;
+            if (pinY >= minY) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            double minY = -pinX + 140;
+            if (pinY >= minY) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
 
 }
