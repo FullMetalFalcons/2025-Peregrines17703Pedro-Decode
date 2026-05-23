@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode;
+import static com.pedropathing.math.MathFunctions.normalizeAngle;
+
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import com.bylazar.configurables.annotations.Configurable;
@@ -34,153 +38,133 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 @Configurable
 @TeleOp
 public class PeregrinesTeleOp extends OpMode {
-    //GoBildaPinpointDriver pinpoint;
-    TelemetryManager telemetryManager;
-
-    boolean isOpen = false;
-
-    public static double flywheelVelocity = 2900;
-    public static double flywheelF = 0.35;
-    public static double flywheelP = 70;
-
-
-    // Unit conversion constants
-    final double TICKS_PER_ROTATION = 28;
-    final double TPS_PER_RPM = TICKS_PER_ROTATION / 60;
-
-    //GoBildaPinpointDriver pinpoint;
-
-
-
-    //Initialize motors, servos, sensors, imus, etc.
     DcMotorEx motorLF, motorRF, motorLB, motorRB, intake, rhinoL, rhinoR;
     Servo eat;
-    // TODO: Uncomment the following line if you are using servos
+    TelemetryManager telemetryManager;
+    HeadingPIDFController headingPIDFController = new HeadingPIDFController();
+    GoBildaPinpointDriver pinpoint;
 
-    // The following code will run as soon as "INIT" is pressed on the Driver Station
+    public static PIDFCoefficients flywheelPIDF = new PIDFCoefficients(70,0,0,0.35);
+    public static double heading_p = 0, heading_d = 0, heading_f = 0;
+    public static double flywheelVelocity = 2900;
 
+    public static boolean blue = false;
+    public static Pose2D startingPose = new Pose2D(DistanceUnit.INCH, 72,72, AngleUnit.DEGREES, 0);
+    double targetBlueX = 10, targetBlueY = 140;
+    double targetRedX = 140, targetRedY = 140;
+    double targetCurrentX = 140, targetCurrentY = 140;
 
-
+    double headingError;
 
     @Override
     public void init() {
+
         telemetryManager = PanelsTelemetry.INSTANCE.getTelemetry();
+        initPinpoint();
+        initDriveMotors(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        //pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-
-        //pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
-
-        // Set up drive motors
-        // The names for each motor are taken from the driveConstants in the Constants file
-        // TODO: Update "Constants" with the names of your drive motors from the driver station configuration file
-        motorLF = (DcMotorEx) hardwareMap.dcMotor.get( Constants.driveConstants.leftFrontMotorName );
-        motorLB = (DcMotorEx) hardwareMap.dcMotor.get( Constants.driveConstants.leftRearMotorName );
-        motorRF = (DcMotorEx) hardwareMap.dcMotor.get( Constants.driveConstants.rightFrontMotorName );
-        motorRB = (DcMotorEx) hardwareMap.dcMotor.get( Constants.driveConstants.rightRearMotorName );
-
-        // Use the following line as a template for defining new servos
-        //claw = (Servo) hardwareMap.servo.get("claw");
-
-        // Reverse certain drive motors so that positive power to all motors makes the robot move forwards
-        // TODO: Update "Constants" with the proper directions of your drive motors
-        motorLF.setDirection( Constants.driveConstants.leftFrontMotorDirection );
-        motorLB.setDirection( Constants.driveConstants.leftRearMotorDirection );
-        motorRF.setDirection( Constants.driveConstants.rightFrontMotorDirection );
-        motorRB.setDirection( Constants.driveConstants.rightRearMotorDirection );
-
-        // This resets the encoder values when the code is initialized
-        motorLF.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorLB.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorRF.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        motorRB.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-
-        // This makes the wheels tense up and stay in position when it is not moving, opposite is FLOAT
-        motorLF.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motorLB.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motorRF.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motorRB.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-
-        // This lets you look at encoder values while the OpMode is active
-        // If you have a STOP_AND_RESET_ENCODER, make sure to put this below it
-        motorLF.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        motorLB.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        motorRF.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        motorRB.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        headingPIDFController.PIDFController(heading_p, 0 ,heading_d, heading_f);
 
         intake = (DcMotorEx) hardwareMap.dcMotor.get("intake");
         rhinoL = (DcMotorEx)  hardwareMap.dcMotor.get("rhinoL");
         rhinoR = (DcMotorEx) hardwareMap.dcMotor.get("rhinoR");
-        eat = (Servo) hardwareMap.servo.get("eat");
 
         intake.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         rhinoL.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rhinoR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        eat.setPosition(0);
-
         rhinoL.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rhinoR.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
+        intake.setDirection(DcMotorSimple.Direction.FORWARD);
         rhinoL.setDirection(DcMotorSimple.Direction.REVERSE);
         rhinoR.setDirection(DcMotorSimple.Direction.FORWARD);
 
-        //voltageSensor = hardwareMap.get(VoltageSensor.class, "Control Hub");
-
+        eat = (Servo) hardwareMap.servo.get("eat");
+        eat.setPosition(0);
     }
 
-    boolean reverseDrive = false;
-    boolean lastLeftBumper = false;
-
-    // This code runs repeatedly until the Stop button is pressed on the Driver Station
-    // Replaces the old  while(OpModeIsActive())  loop
     @Override
     public void loop() {
 
+        // *************    ODOMETRY    *************
+        pinpoint.update();
 
-        //follower.update();
+        double currentX = pinpoint.getPosX(DistanceUnit.INCH);
+        double currentY = pinpoint.getPosY(DistanceUnit.INCH);
+        double currentHeading = pinpoint.getHeading(AngleUnit.DEGREES);
+        double velX = pinpoint.getVelX(DistanceUnit.INCH);
+        double velY = pinpoint.getVelY(DistanceUnit.INCH);
 
-        motorLF.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motorLB.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motorRF.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        motorRB.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-        // Mecanum drive code
+
+
+        // *************    TARGET LOGIC    *************
+        if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
+            blue = !blue;
+        }
+        /*if (gamepad1.dpadLeftWasPressed() || gamepad2.dpadLeftWasPressed()) {
+            correctedTargetToggle = !correctedTargetToggle;
+        }*/
+
+        if (blue) {
+            targetCurrentX = targetBlueX;
+            targetCurrentY = targetBlueY;
+        } else {
+            targetCurrentX = targetRedX;
+            targetCurrentY = targetRedY;
+        }
+
+        double distance = calculateDistance(currentX, currentY, targetCurrentX, targetCurrentY);
+
+
+
+        //    *************    SHOOT AND MOVE    *************
+        /*double[] targetCurrentAdjusted = getAdjustedTarget(
+                targetCurrentX, targetCurrentY,
+                velX, velY,
+                timeOfFlight = calculateTimeOfFlight(1.7142857143 * targetVel, distance)
+        );
+        if (correctedTargetToggle && currentY > 42) {
+            targetCurrentX = targetCurrentAdjusted[0];
+            targetCurrentY = targetCurrentAdjusted[1];
+            distance = calculateDistance(currentX, currentY, targetCurrentX, targetCurrentY);
+        }*/
+
+        double targetHeading = Math.atan2(
+                targetCurrentY - currentY,
+                targetCurrentX - currentX
+        );
+
+
+
+        // *************    MECANUM    *************
         double powerX = 0.0;  // Desired power for strafing           (-1 to 1)
         double powerY = 0.0;  // Desired power for forward/backward   (-1 to 1)
         double powerAng = 0.0;  // Desired power for turning          (-1 to 1)
 
+        boolean targetTrack;
 
-        // Set the desired powers based on joystick inputs (-1 to 1)
+        headingPIDFController.PIDFController(heading_p, 0, heading_d, heading_f);
+
+        headingError = determineRotationDirection(pinpoint.getHeading(AngleUnit.RADIANS), targetHeading);
+
+        if (gamepad1.right_trigger > 0.2 || gamepad2.right_trigger > 0.2) {
+            powerAng = headingPIDFController.run(headingError);
+            powerAng = Math.max(-1.0, Math.min(1.0, powerAng));
+            targetTrack = true;
+        } else {
+            powerAng = -gamepad1.right_stick_x;
+            targetTrack = false;
+        }
+
         powerX = gamepad1.left_stick_x;
         powerY = -gamepad1.left_stick_y;
-        powerAng = -gamepad1.right_stick_x;
 
-
-        // Perform vector math to determine the desired powers for each wheel
-        double powerLF = powerX + powerY - powerAng;
-        double powerLB = -powerX + powerY - powerAng;
-        double powerRF = -powerX + powerY + powerAng;
-        double powerRB = powerX + powerY + powerAng;
-
-        // Determine the greatest wheel power and set it to max
-        double max = Math.max(1.0, Math.abs(powerLF));
-        max = Math.max(max, Math.abs(powerRF));
-        max = Math.max(max, Math.abs(powerLB));
-        max = Math.max(max, Math.abs(powerRB));
+        mecanumDriveCode(powerY, powerX, powerAng, 1.0);
 
 
 
-        // Scale all power variables down to a number between 0 and 1 (so that setPower will accept them)
-        powerLF /= max;
-        powerLB /= max;
-        powerRF /= max;
-        powerRB /= max;
-
-
-        motorLF.setPower(powerLF);
-        motorLB.setPower(powerLB);
-        motorRF.setPower(powerRF);
-        motorRB.setPower(powerRB);
-
+        // *************    LAUNCHER    *************
         double velDifference = Math.abs(rhinoL.getVelocity() - rhinoR.getVelocity());
 
         if (gamepad1.right_bumper || gamepad2.right_bumper) {
@@ -193,12 +177,9 @@ public class PeregrinesTeleOp extends OpMode {
             intake.setPower(0);
         }
 
-
         // FLYWHEEL CODE
-        PIDFCoefficients flywheelCoefficients = new PIDFCoefficients(flywheelP, 0, 0, flywheelF);
-        rhinoL.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelCoefficients);
-        rhinoR.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelCoefficients);
-
+        rhinoL.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelPIDF);
+        rhinoR.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelPIDF);
 
         if (gamepad1.right_trigger >= 0.2 || gamepad2.right_trigger >= 0.2) {
             rhinoL.setVelocity(flywheelVelocity);
@@ -222,11 +203,6 @@ public class PeregrinesTeleOp extends OpMode {
             eat.setPosition(0);
         }*/
 
-        // If you want to print information to the Driver Station, use telemetry
-        // addData() lets you give a string which is automatically followed by a ":" when printed
-        //     the variable that you list after the comma will be displayed next to the label
-        // update() only needs to be run once and will "push" all of the added data+
-
         telemetryManager.addData("launchVel L", rhinoL.getVelocity());
         telemetryManager.addData("launchVel R", rhinoR.getVelocity());
 
@@ -237,17 +213,106 @@ public class PeregrinesTeleOp extends OpMode {
 
         telemetryManager.update();
 
-        telemetry.addData("Open", isOpen);
-        telemetry.addData("Servo Pos", eat.getPosition());
         telemetry.addData("velocity R", rhinoR.getVelocity());
         telemetry.addData("velocity L", rhinoL.getVelocity());
         telemetry.addData("velocity difference", velDifference);
+        telemetry.addData("distance", distance);
+        telemetry.addLine();
+        telemetry.addData("X", currentX);
+        telemetry.addData("Y", currentY);
+        telemetry.addData("H", pinpoint.getHeading(AngleUnit.DEGREES));
+        telemetry.addLine();
+        telemetry.addData("targetHeading", Math.toDegrees(targetHeading));
+        telemetry.addData("targetX", targetCurrentX);
+        telemetry.addData("targetY", targetCurrentY);
         //telemetry.addData("in close launch", launchDetection());
         telemetry.update();
 
     }
 
     // Any additional methods go here
+    public void initDriveMotors(DcMotor.ZeroPowerBehavior behavior) {
+        motorLF = (DcMotorEx) hardwareMap.dcMotor.get(Constants.driveConstants.leftFrontMotorName);
+        motorRF = (DcMotorEx) hardwareMap.dcMotor.get(Constants.driveConstants.rightFrontMotorName);
+        motorLB = (DcMotorEx) hardwareMap.dcMotor.get(Constants.driveConstants.leftRearMotorName);
+        motorRB = (DcMotorEx) hardwareMap.dcMotor.get(Constants.driveConstants.rightRearMotorName);
+
+        motorLF.setDirection(Constants.driveConstants.leftFrontMotorDirection);
+        motorLB.setDirection(Constants.driveConstants.leftRearMotorDirection);
+        motorRF.setDirection(Constants.driveConstants.rightFrontMotorDirection);
+        motorRB.setDirection(Constants.driveConstants.rightRearMotorDirection);
+
+        motorLF.setZeroPowerBehavior(behavior);
+        motorLB.setZeroPowerBehavior(behavior);
+        motorRF.setZeroPowerBehavior(behavior);
+        motorRB.setZeroPowerBehavior(behavior);
+    }
+
+    public void initPinpoint() {
+        String pinpointName = Constants.localizerConstants.hardwareMapName;
+        GoBildaPinpointDriver.EncoderDirection forwardDirection = Constants.localizerConstants.forwardEncoderDirection;
+        GoBildaPinpointDriver.EncoderDirection strafeDirection = Constants.localizerConstants.strafeEncoderDirection;
+        GoBildaPinpointDriver.GoBildaOdometryPods resolution = Constants.localizerConstants.encoderResolution;
+
+        double xOffset = Constants.localizerConstants.forwardPodY;
+        double yOffset = Constants.localizerConstants.strafePodX;
+
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, pinpointName);
+        pinpoint.setEncoderDirections(forwardDirection, strafeDirection);
+        pinpoint.setOffsets(xOffset, yOffset, DistanceUnit.INCH);
+        pinpoint.setEncoderResolution(resolution);
+
+        pinpoint.setPosition(startingPose);
+    }
+    public void mecanumDriveCode(double forward, double strafe, double angular, double speedPercent) {
+        // Perform vector math to determine the desired powers for each wheel
+        double powerLF = strafe + forward - angular;
+        double powerLB = -strafe + forward - angular;
+        double powerRF = -strafe + forward + angular;
+        double powerRB = strafe + forward + angular;
+
+        // Determine the greatest wheel power and set it to max
+        double max = Math.max(1.0, Math.abs(powerLF));
+        max = Math.max(max, Math.abs(powerRF));
+        max = Math.max(max, Math.abs(powerLB));
+        max = Math.max(max, Math.abs(powerRB));
+
+        // Scale all power variables down to a number between 0 and 1 (so that setPower will accept them)
+        motorLF.setPower(powerLF /max * speedPercent);
+        motorLB.setPower(powerLB /max * speedPercent);
+        motorRF.setPower(powerRF /max * speedPercent);
+        motorRB.setPower(powerRB /max * speedPercent);
+    }
+    public double determineRotationDirection(double current, double target) {
+        double currentCircularHeading = normalizeAngle(current);
+        double targetHeading = normalizeAngle(target);
+        double clockwiseRadians;
+        double counterclockwiseRadians;
+
+        // Determine the larger of the two headings
+        if (targetHeading > currentCircularHeading) {
+            // Subtract the smaller (current) heading from the larger (target) heading
+            //   to find the radians needed to turn to get to the target going counterclockwise
+            counterclockwiseRadians = targetHeading - currentCircularHeading;
+            // Find the alternative
+            clockwiseRadians = 2*Math.PI - counterclockwiseRadians;
+        } else {
+            // Subtract the smaller (target) heading from the larger (current) heading
+            //   to find the radians needed to turn to get to the target doing clockwise
+            clockwiseRadians = currentCircularHeading - targetHeading;
+            // Find the alternative
+            counterclockwiseRadians = 2*Math.PI - clockwiseRadians;
+        }
+        // Determine the most efficient direction and return the proper multiplier
+        if (clockwiseRadians < counterclockwiseRadians) {
+            return -clockwiseRadians;
+        } else {
+            return counterclockwiseRadians;
+        }
+    }
+    public static double calculateDistance(double x1, double y1, double x2, double y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    }
 /*
     public boolean launchDetection()
     {
