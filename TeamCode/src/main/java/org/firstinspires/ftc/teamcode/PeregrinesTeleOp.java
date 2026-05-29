@@ -32,7 +32,6 @@ import com.pedropathing.paths.Path;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-
 import java.util.function.Supplier;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
@@ -103,14 +102,12 @@ public class PeregrinesTeleOp extends OpMode {
 
 
         // *************    TARGET LOGIC    *************
-        if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
-            blue = !blue;
-        }
+
         /*if (gamepad1.dpadLeftWasPressed() || gamepad2.dpadLeftWasPressed()) {
             correctedTargetToggle = !correctedTargetToggle;
         }*/
 
-        if (blue) {
+        if (PeregrinesPos.pos == 0 || PeregrinesPos.pos == 2) {
             targetCurrentX = targetBlueX;
             targetCurrentY = targetBlueY;
         } else {
@@ -186,6 +183,23 @@ public class PeregrinesTeleOp extends OpMode {
         // FLYWHEEL CODE
         rhinoL.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelPIDF);
         rhinoR.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, flywheelPIDF);
+
+        if (PeregrinesPos.isSolo) {
+            if (gamepad1.right_trigger >= 0.2) {
+                rhinoL.setVelocity(flywheelVelocity);
+                rhinoR.setVelocity(flywheelVelocity);
+                eat.setPosition(0.4);
+            }
+            else if (gamepad1.left_trigger >= 0.2) {
+                rhinoL.setVelocity(-flywheelVelocity);
+                rhinoR.setVelocity(-flywheelVelocity);
+            }
+            else {
+                rhinoL.setPower(0);
+                rhinoR.setPower(0);
+                eat.setPosition(0);
+            }
+        }
 
         if (gamepad2.right_trigger >= 0.2) {
             rhinoL.setVelocity(flywheelVelocity);

@@ -49,7 +49,7 @@ public class PeregrinesAuto extends OpMode {
     // Define important coordinate locations for the Blue side of the field
 
     // === Positions ===
-    private Pose startPose = new Pose(26, 129, 143);
+    private Pose startPose = PeregrinesPos.startPos;
     private Pose shootPos = new Pose(45, 114, 135);
     private Pose intakeSpikeMarkTwo = new Pose(20, 60, 180);
     private Pose gateIntake = new Pose(10, 63, 140);
@@ -60,9 +60,11 @@ public class PeregrinesAuto extends OpMode {
     private Pose CP_GateIntake = new Pose(67, 73);
     private Pose CP_spikeMarkOne = new Pose(67, 80);
 
+    private Pose farPark = new Pose(16, 8, 90);
 
 
-    private PathChain launchPreload, getSpikeMarkTwo, shootSpikeMarkTwo, collectGatePath, CollectSpikeMarkOne, shootSpikeMarkOne, shootGateIntake;
+
+    private PathChain launchPreload, getSpikeMarkTwo, shootSpikeMarkTwo, collectGatePath, CollectSpikeMarkOne, shootSpikeMarkOne, shootGateIntake, farParkPath;
 
 
     @Override
@@ -91,28 +93,17 @@ public class PeregrinesAuto extends OpMode {
     @Override
     public void init_loop() {
 
-        // Modify the delay before the autonomous begins
-        if (gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) {
-            isBlue = !isBlue;
-        }
-
-        if (isBlue) {
-            location = "Blue";
-        }
-        else {
-            location = "Red";
-        }
-
         telemetry.addData("Delay in seconds", delaySeconds);
-        telemetry.addData("Location", location);
+        telemetry.addData("Location", PeregrinesPos.positions[PeregrinesPos.pos]);
         telemetry.update();
 
     }
 
     @Override
     public void start() {
-        if (!isBlue) {
-            startPose = startPose.mirror();
+        if (PeregrinesPos.pos == 1 || PeregrinesPos.pos == 3) {
+            endPose = endPose.mirror();
+
             shootPos = shootPos.mirror();
             intakeSpikeMarkTwo = intakeSpikeMarkTwo.mirror();
             gateIntake = gateIntake.mirror();
@@ -132,7 +123,12 @@ public class PeregrinesAuto extends OpMode {
     @Override
     public void loop() {
         follower.update(); // Update Pedro Pathing - will also cause the robot to follow the current path
-        autonomousPathUpdate(); // Update autonomous state machine
+        if (PeregrinesPos.pos == 0 || PeregrinesPos.pos == 1) {
+            autonomousPathUpdateClose(); // Update autonomous state machine
+        }
+        if (PeregrinesPos.pos == 2 || PeregrinesPos.pos == 3) {
+            autonomousPathUpdateFar(); // Update auto state machine
+        }
         endPose = follower.getPose();
     }
 
@@ -170,10 +166,15 @@ public class PeregrinesAuto extends OpMode {
                 .addPath(new BezierCurve(intakeSpikeMarkOne, CP_spikeMarkOne, shootPos))
                 .setLinearHeadingInterpolation(intakeSpikeMarkOne.getHeading(), shootPos.getHeading())
                 .build();
+
+        farParkPath = follower.pathBuilder()
+                .addPath(new BezierLine(startPose, farPark))
+                .setLinearHeadingInterpolation(startPose.getHeading(), farPark.getHeading())
+                .build();
     }
 
 
-    public void autonomousPathUpdate() {
+    public void autonomousPathUpdateClose() {
 
         // Autonomous state machine
         switch (pathState) {
@@ -187,7 +188,6 @@ public class PeregrinesAuto extends OpMode {
                 break;
             case 1: // 3
                 if (!follower.isBusy()) {
-                    PeregrinesConfig.launchBalls();
                     PeregrinesConfig.launchBalls();
                     pathState = 2;
                 }
@@ -270,6 +270,19 @@ public class PeregrinesAuto extends OpMode {
                 if (!follower.isBusy()) {
                     PeregrinesConfig.launchBalls(); // 15
                     pathState = -1; // END AUTO ROUTE!!! WOOO 15 BALL AUTO?!?!?! (hopefully)
+                }
+                break;
+        }
+    }
+
+    public void autonomousPathUpdateFar() {
+        switch (pathState) {
+            case 0:
+                // Wait for the starting delay to expire
+                if (delayTimer.seconds() > delaySeconds) {
+                    // Begin the whole route
+                    follower.followPath(farParkPath, true);
+                    pathState = 1;
                 }
                 break;
         }
