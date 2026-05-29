@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
@@ -10,9 +11,11 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+//import com.pedropathing.control.PredictiveBrakingCoefficients;
+
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
+@Configurable 
 public class Constants {
 
     // XAVIER NOTE:  While tuning for Autonomous, the Pedro Pathing documentation will tell you to copy and paste over a "MecanumConstants" declaration statement.
@@ -22,10 +25,11 @@ public class Constants {
     final static double lbPerKg = 2.205;
     final static double robotWeightInPounds = 20; // TODO: Update with your robot's actual weight
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .forwardZeroPowerAcceleration(-35.51014441883256)
-            .lateralZeroPowerAcceleration(-55.56595814888622)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.1, 0, 0, 0))
-            .mass(robotWeightInPounds /lbPerKg);
+            .mass(robotWeightInPounds / lbPerKg)
+            .headingPIDFCoefficients(new PIDFCoefficients(0,0,0,0))
+            //.predictiveBrakingCoefficients(new PredictiveBrakingCoefficients(0, 0, 0)) // (kP, kLinear, kQuadratic)
+            .centripetalScaling(0)
+            ;
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
@@ -46,8 +50,8 @@ public class Constants {
             1,
             1);
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-3)
-            .strafePodX(-4.5)
+            .forwardPodY(2.444)
+            .strafePodX(2.278244)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("pinpoint")
             .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
