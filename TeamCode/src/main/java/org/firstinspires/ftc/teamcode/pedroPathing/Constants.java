@@ -11,11 +11,10 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
-//import com.pedropathing.control.PredictiveBrakingCoefficients;
 
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-@Configurable 
+@Configurable
 public class Constants {
 
     // XAVIER NOTE:  While tuning for Autonomous, the Pedro Pathing documentation will tell you to copy and paste over a "MecanumConstants" declaration statement.
