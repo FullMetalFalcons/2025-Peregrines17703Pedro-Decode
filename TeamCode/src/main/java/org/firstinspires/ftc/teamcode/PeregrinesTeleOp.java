@@ -49,7 +49,7 @@ public class PeregrinesTeleOp extends OpMode {
 
 
     public static PIDFCoefficients flywheelPIDF = new PIDFCoefficients(70,0,0,0.35);
-    public static double heading_p = 0, heading_d = 0, heading_f = 0;
+    public static double heading_p = 1, heading_d = 0.128, heading_f = 0.05;
     public static double flywheelVelocity = 2900;
 
     public static boolean blue = false;
@@ -107,7 +107,17 @@ public class PeregrinesTeleOp extends OpMode {
             correctedTargetToggle = !correctedTargetToggle;
         }*/
 
-        if (PeregrinesPos.pos == 0 || PeregrinesPos.pos == 2) {
+        /*if (PeregrinesPos.pos == 0 || PeregrinesPos.pos == 2) {
+            targetCurrentX = targetBlueX;
+            targetCurrentY = targetBlueY;
+        } else {
+            targetCurrentX = targetRedX;
+            targetCurrentY = targetRedY;
+        }*/
+        if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
+            blue = !blue;
+        }
+        if (blue) {
             targetCurrentX = targetBlueX;
             targetCurrentY = targetBlueY;
         } else {
@@ -172,7 +182,7 @@ public class PeregrinesTeleOp extends OpMode {
         if (!noahBeingStupid) {
             if (gamepad1.right_bumper || gamepad2.right_bumper) {
                 intake.setPower(-1);
-            } else if ((gamepad1.left_bumper || gamepad2.left_bumper) && (((gamepad1.right_trigger >= 0.2 || gamepad2.right_trigger >= 0.2) && velDifference <= 20) || (gamepad1.right_trigger <= 0.2 || gamepad2.right_trigger <= 0.2))) {
+            } else if ((gamepad1.left_bumper || gamepad2.left_bumper)) { //&& (((gamepad1.right_trigger >= 0.2 || gamepad2.right_trigger >= 0.2) && velDifference <= 20) || (gamepad1.right_trigger <= 0.2 || gamepad2.right_trigger <= 0.2))) {
                 intake.setPower(1);
             } else {
                 intake.setPower(0);
